@@ -1,4 +1,36 @@
-﻿-- TABELAS
+-- =====================
+-- SEGURANÇA E CONTROLE
+-- =====================
+
+DROP TABLE IF EXISTS Usuarios;
+
+CREATE TABLE IF NOT EXISTS Usuarios (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario TEXT UNIQUE NOT NULL,
+    senha_hash TEXT NOT NULL,
+    email_hash TEXT NOT NULL,
+    papel TEXT CHECK (papel IN ('admin', 'gerente', 'investidor')) DEFAULT 'investidor'
+);
+
+-- ============================
+-- VIEW EXCLUSIVA PARA GERENTE
+-- ============================
+
+CREATE VIEW IF NOT EXISTS Vw_Gerente_Carteiras AS
+SELECT 
+    c.id_carteira,
+    c.nome_carteira,
+    i.nome AS nome_investidor,
+    c.saldo_atual
+FROM Carteiras c
+JOIN Investidores i ON i.cpf = c.cpf_investidor
+WHERE EXISTS (
+    SELECT 1 FROM Usuarios u WHERE u.papel = 'gerente'
+);
+
+-- ============================
+-- SCHEMA GRUPO 1 - CARTEIRAS
+-- ============================
 
 CREATE TABLE IF NOT EXISTS Investidores (
     cpf VARCHAR(11) PRIMARY KEY,
@@ -60,13 +92,13 @@ CREATE TABLE IF NOT EXISTS Transacoes (
     FOREIGN KEY (id_investimento) REFERENCES Investimentos(id_investimento) ON DELETE CASCADE
 );
 
--- ÍNDICES
+-- ====================
+-- ÍNDICES E RELATÓRIOS
+-- ====================
 
 CREATE INDEX IF NOT EXISTS idx_investidores_cpf ON Investidores(cpf);
 CREATE INDEX IF NOT EXISTS idx_carteiras_cpf ON Carteiras(cpf_investidor);
 CREATE INDEX IF NOT EXISTS idx_transacoes_carteira ON Transacoes(id_carteira);
-
--- VIEW
 
 CREATE VIEW IF NOT EXISTS Relatorio_Carteiras AS
 SELECT 
@@ -82,7 +114,9 @@ JOIN Investidores i ON c.cpf_investidor = i.cpf
 LEFT JOIN Transacoes t ON c.id_carteira = t.id_carteira
 GROUP BY c.id_carteira, c.nome_carteira, i.nome, c.saldo_atual;
 
--- TRIGGER
+-- ============================
+-- TRIGGER ATUALIZA SALDO
+-- ============================
 
 CREATE TRIGGER IF NOT EXISTS atualiza_saldo_carteira
 AFTER INSERT ON Transacoes
@@ -98,7 +132,81 @@ BEGIN
     WHERE id_carteira = NEW.id_carteira;
 END;
 
--- DADOS
+-- ============================
+-- SCHEMA GRUPO 2 - INVESTIMENTOS
+-- ============================
+
+CREATE TABLE IF NOT EXISTS investidores_g2 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    perfil TEXT CHECK(perfil IN ('conservador', 'moderado', 'arrojado')) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS instituicoes_g2 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    cnpj TEXT UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ativos (
+    codigo TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    tipo TEXT CHECK(tipo IN ('ação', 'fundo', 'renda fixa', 'cripto')) NOT NULL,
+    instituicao_id INTEGER NOT NULL,
+    FOREIGN KEY (instituicao_id) REFERENCES instituicoes_g2(id)
+);
+
+CREATE TABLE IF NOT EXISTS investimentos_g2 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    investidor_id INTEGER NOT NULL,
+    ativo_codigo TEXT NOT NULL,
+    data_inicio DATE NOT NULL,
+    FOREIGN KEY (investidor_id) REFERENCES investidores_g2(id),
+    FOREIGN KEY (ativo_codigo) REFERENCES ativos(codigo)
+);
+
+CREATE TABLE IF NOT EXISTS aportes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    investimento_id INTEGER NOT NULL,
+    data DATE NOT NULL,
+    valor REAL NOT NULL CHECK (valor >= 0),
+    FOREIGN KEY (investimento_id) REFERENCES investimentos_g2(id)
+);
+
+CREATE TABLE IF NOT EXISTS resgates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    investimento_id INTEGER NOT NULL,
+    data DATE NOT NULL,
+    valor REAL NOT NULL CHECK (valor >= 0),
+    FOREIGN KEY (investimento_id) REFERENCES investimentos_g2(id)
+);
+
+CREATE TABLE IF NOT EXISTS rendimentos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    investimento_id INTEGER NOT NULL,
+    data DATE NOT NULL,
+    valor REAL NOT NULL CHECK (valor >= 0),
+    FOREIGN KEY (investimento_id) REFERENCES investimentos_g2(id)
+);
+
+CREATE TABLE IF NOT EXISTS cotacoes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ativo_codigo TEXT NOT NULL,
+    data DATE NOT NULL,
+    preco REAL NOT NULL CHECK(preco >= 0),
+    FOREIGN KEY (ativo_codigo) REFERENCES ativos(codigo)
+);
+
+CREATE TABLE IF NOT EXISTS metas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    investidor_id INTEGER NOT NULL,
+    descricao TEXT NOT NULL,
+    valor_meta REAL NOT NULL CHECK(valor_meta >= 0),
+    data_alvo DATE NOT NULL,
+    FOREIGN KEY (investidor_id) REFERENCES investidores_g2(id)
+);
+
 
 -- INVESTIDORES
 
@@ -177,133 +285,119 @@ VALUES
 (5, 5, 'Rendimento', 160.00, 'Rendimento CDB');
 
 
-Grupo 2- Schema
+INSERT INTO Investimentos (id_carteira, id_tipo_investimento, cnpj_instituicao, valor_investido, rentabilidade_esperada)
+VALUES
+(6, 2, '34567890000177', 4500.00, 7.50),
+(7, 3, '23456789000188', 12000.00, 12.80),
+(8, 1, '12345678000199', 7000.00, 9.00),
+(9, 4, '34567890000177', 4000.00, 8.50),
+(10, 2, '12345678000199', 3000.00, 6.80),
+(11, 1, '12345678000199', 9500.00, 8.10),
+(12, 4, '23456789000188', 3800.00, 8.00),
+(13, 3, '23456789000188', 6200.00, 14.00),
+(14, 2, '34567890000177', 4800.00, 7.00),
+(15, 1, '12345678000199', 5100.00, 8.30),
+(16, 4, '34567890000177', 2700.00, 7.80),
+(17, 3, '23456789000188', 1500.00, 13.50),
+(18, 1, '12345678000199', 8800.00, 8.70),
+(19, 2, '34567890000177', 3600.00, 7.10),
+(20, 4, '23456789000188', 4200.00, 9.20);
 
-CREATE TABLE investidores (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    perfil TEXT CHECK(perfil IN ('conservador', 'moderado', 'arrojado')) NOT NULL
-);
+INSERT INTO Transacoes (id_carteira, id_investimento, tipo_transacao, valor, descricao)
+VALUES
+(6, 6, 'Depósito', 4500.00, 'Aporte Tesouro Direto'),
+(6, 6, 'Rendimento', 90.00, 'Juros mensais'),
 
-CREATE TABLE instituicoes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT NOT NULL,
-    cnpj TEXT UNIQUE NOT NULL
-);
+(7, 7, 'Depósito', 12000.00, 'Compra de ações'),
+(7, 7, 'Rendimento', 300.00, 'Valorização em bolsa'),
 
-CREATE TABLE ativos (
-    codigo TEXT PRIMARY KEY,
-    nome TEXT NOT NULL,
-    tipo TEXT CHECK(tipo IN ('ação', 'fundo', 'renda fixa', 'cripto')) NOT NULL,
-    instituicao_id INTEGER NOT NULL,
-    FOREIGN KEY (instituicao_id) REFERENCES instituicoes(id)
-);
+(8, 8, 'Depósito', 7000.00, 'Aplicação em CDB'),
+(8, 8, 'Rendimento', 210.00, 'Rendimento bancário'),
 
-CREATE TABLE investimentos (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    investidor_id INTEGER NOT NULL,
-    ativo_codigo TEXT NOT NULL,
-    data_inicio DATE NOT NULL,
-    FOREIGN KEY (investidor_id) REFERENCES investidores(id),
-    FOREIGN KEY (ativo_codigo) REFERENCES ativos(codigo)
-);
+(9, 9, 'Depósito', 4000.00, 'Compra de FII'),
+(9, 9, 'Rendimento', 85.00, 'Rendimento mensal'),
 
-CREATE TABLE aportes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    investimento_id INTEGER NOT NULL,
-    data DATE NOT NULL,
-    valor REAL NOT NULL CHECK (valor >= 0),
-    FOREIGN KEY (investimento_id) REFERENCES investimentos(id)
-);
+(10, 10, 'Depósito', 3000.00, 'Tesouro Prefixado'),
+(10, 10, 'Rendimento', 70.00, 'Juros acumulado'),
 
-CREATE TABLE resgates (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    investimento_id INTEGER NOT NULL,
-    data DATE NOT NULL,
-    valor REAL NOT NULL CHECK (valor >= 0),
-    FOREIGN KEY (investimento_id) REFERENCES investimentos(id)
-);
+(11, 11, 'Depósito', 9500.00, 'CDB longo prazo'),
+(11, 11, 'Rendimento', 230.00, 'Rendimento acumulado'),
 
-CREATE TABLE rendimentos (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    investimento_id INTEGER NOT NULL,
-    data DATE NOT NULL,
-    valor REAL NOT NULL CHECK (valor >= 0),
-    FOREIGN KEY (investimento_id) REFERENCES investimentos(id)
-);
+(12, 12, 'Depósito', 3800.00, 'FII logístico'),
+(12, 12, 'Rendimento', 95.00, 'Aluguel distribuído'),
 
-CREATE TABLE cotacoes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    ativo_codigo TEXT NOT NULL,
-    data DATE NOT NULL,
-    preco REAL NOT NULL CHECK(preco >= 0),
-    FOREIGN KEY (ativo_codigo) REFERENCES ativos(codigo)
-);
+(13, 13, 'Depósito', 6200.00, 'Compra de ações'),
+(13, 13, 'Rendimento', 180.00, 'Valorização mercado'),
 
-CREATE TABLE metas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    investidor_id INTEGER NOT NULL,
-    descricao TEXT NOT NULL,
-    valor_meta REAL NOT NULL CHECK(valor_meta >= 0),
-    data_alvo DATE NOT NULL,
-    FOREIGN KEY (investidor_id) REFERENCES investidores(id)
-);
+(14, 14, 'Depósito', 4800.00, 'Tesouro IPCA'),
+(14, 14, 'Rendimento', 100.00, 'Correção inflacionária'),
+
+(15, 15, 'Depósito', 5100.00, 'CDB curto prazo'),
+(15, 15, 'Rendimento', 130.00, 'Juros recebidos'),
+
+(16, 16, 'Depósito', 2700.00, 'FII shopping'),
+(16, 16, 'Rendimento', 70.00, 'Aluguel mensal'),
+
+(17, 17, 'Depósito', 1500.00, 'Compra de ações'),
+(17, 17, 'Rendimento', 60.00, 'Valorização'),
+
+(18, 18, 'Depósito', 8800.00, 'CDB bancário'),
+(18, 18, 'Rendimento', 250.00, 'Juros mês'),
+
+(19, 19, 'Depósito', 3600.00, 'Tesouro Selic'),
+(19, 19, 'Rendimento', 80.00, 'Selic mensal'),
+
+(20, 20, 'Depósito', 4200.00, 'FII residencial'),
+(20, 20, 'Rendimento', 110.00, 'Aluguel repassado');
 
 
--- /seguranca/01_tabela_usuarios.sql
-CREATE TABLE IF NOT EXISTS Usuarios (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    usuario TEXT UNIQUE NOT NULL,
-    senha_hash TEXT NOT NULL,  -- SHA-256 gerado externamente
-    email_hash TEXT NOT NULL   -- SHA-256 do e-mail (opcional)
-);
+BEGIN TRANSACTION;
 
--- /seguranca/01_insert_usuarios.sql
---INSERT INTO Usuarios (usuario, senha_hash, email_hash)
---VALUES (
-    --'lucas_admin',
-    --'5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', -- "password"
-    --'2c1743a391305fbf367df8e4f069f9f9c5e43c907f798d0540be50d3c6f2c8ad'  -- "lucas@email.com"
---);
+-- Novos Investidores
+INSERT INTO Investidores (cpf, nome, email, telefone, endereco) VALUES
+('50505050505', 'Marina dos Santos', 'marina.santos@example.com', '(31) 91234‑1111', 'Rua A, 100'),
+('60606060606', 'Carlos Eduardo Silva', 'carlos.edu@example.com', '(21) 91234‑2222', 'Av. B, 200'),
+('70707070707', 'Priscila Ferreira', 'priscila.ferreira@example.com', '(11) 91234‑3333', 'Rua C, 300');
 
--- recriar a tabela do zero (perde os dados)
-DROP TABLE IF EXISTS Usuarios;
+-- Instituições novas
+INSERT INTO Instituicoes (cnpj, nome, tipo, contato) VALUES
+('67890000000144', 'Green Energy Fund', 'Fundo de Investimento', 'contato@greenfund.com'),
+('78900000000133', 'CryptoPlus', 'Corretora Cripto', 'suporte@cryptoplus.com');
 
-CREATE TABLE Usuarios (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    usuario TEXT UNIQUE NOT NULL,
-    senha_hash TEXT NOT NULL,
-    email_hash TEXT NOT NULL,
-    papel TEXT CHECK (papel IN ('admin', 'gerente', 'investidor')) DEFAULT 'investidor'
-);
+-- Tipos de investimento extras
+INSERT INTO Tipos_Investimento (nome, descricao, risco) VALUES
+('Criptomoedas', 'Investimentos em criptomoedas como BTC/ETH', 'Alto'),
+('Fundos ESG', 'Fundos com foco em sustentabilidade', 'Médio');
 
+COMMIT;
 
--- /seguranca/02_view_gerente.sql
-CREATE VIEW IF NOT EXISTS Vw_Gerente_Carteiras AS
-SELECT 
-    c.id_carteira,
-    c.nome_carteira,
-    i.nome AS nome_investidor,
-    c.saldo_atual
-FROM Carteiras c
-JOIN Investidores i ON i.cpf = c.cpf_investidor
-WHERE EXISTS (
-    SELECT 1 FROM Usuarios u WHERE u.papel = 'gerente'
-);
+-- Agora, inserir carteiras, investimentos e transações sem subqueries:
 
----- /seguranca/03_sql_injection.sql
+BEGIN TRANSACTION;
 
--- 🚨 CONSULTA INSEGURA (NÃO FAÇA)
--- SELECT * FROM Investidores WHERE email = 'a@email.com' OR '1'='1';
+-- Carteiras
+INSERT INTO Carteiras (cpf_investidor, nome_carteira) VALUES
+('50505050505', 'Carteira Marina'),
+('60606060606', 'Carteira Carlos'),
+('70707070707', 'Carteira Priscila');
 
--- ✅ CONSULTA SEGURA: usando parâmetro (na aplicação)
--- SELECT * FROM Investidores WHERE email = ?;
+-- Resgatar id_carteira usando last_insert_rowid numa aplicação
+-- aqui vamos assumir manualmente:
+-- id_carteira  = X por ordem
 
----📌 Como SQLite não tem prepared statements no SQL puro, essa proteção deve ser implementada na aplicação (ex: Python, Java, etc.).
+-- Investimentos (cedo valores fixos correspondentes à ordem)
+INSERT INTO Investimentos (id_carteira, id_tipo_investimento, cnpj_instituicao, valor_investido, rentabilidade_esperada) VALUES
+(11, 1, '67890000000144', 5000.00, 9.5),
+(12, 2, '78900000000133', 7000.00, 15.0),
+(13, 1, '67890000000144', 4000.00, 10.0);
 
-Database
+-- Transações básicas
+INSERT INTO Transacoes (id_carteira, id_investimento, tipo_transacao, valor, descricao) VALUES
+(11, 11, 'Depósito', 5000.00, 'Aporte inicial Marina'),
+(11, 11, 'Rendimento', 150.00, 'Rendimento 1 mês'),
+(12, 12, 'Depósito', 7000.00, 'Aporte inicial Carlos'),
+(12, 12, 'Rendimento', 200.00, 'Rendimento 1 mês'),
+(13, 13, 'Depósito', 4000.00, 'Compra Priscila'),
+(13, 13, 'Rendimento', 120.00, 'Valorização FII');
 
-
-
-
+COMMIT;
