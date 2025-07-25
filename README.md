@@ -61,11 +61,7 @@ Este repositório contém um sistema completo para gestão de carteiras de inves
 - Relatórios gerais de carteiras, investimentos e movimentações
 - Relatórios analíticos para cálculos de saldo, rentabilidade e comportamento de investidores
 
-## 🏗️ Como Rodar
-1. Clone o repositório:
-```bash
-git clone https://github.com/cali-arena/banco-investimentos-sqlite.git
-cd banco-investimentos-sqlite
+
 
 👥 Time de Desenvolvimento
 Lucas Cabral
