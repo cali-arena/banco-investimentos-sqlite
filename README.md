@@ -31,35 +31,56 @@ Este repositório contém um sistema completo para gestão de carteiras de inves
 ├── LICENSE
 └── .gitignore
 
+
 ## 🧠 Modelagem Lógica
 
 **Tabelas Principais:**
 
-- **Investidores**: Armazena os dados de pessoas físicas com CPF, nome, e-mail, telefone e endereço.
-- **Instituições**: Contém CNPJ, nome da instituição, tipo (ex: banco, corretora) e contato.
-- **Tipos_Investimento**: Classifica os produtos por nome, descrição e nível de risco.
-- **Carteiras**: Cada investidor pode possuir uma ou mais carteiras. Ligação com Investidores.
-- **Investimentos**: Ligação entre carteiras, tipos de investimento e instituições.
-- **Transações**: Registra movimentações financeiras por tipo (depósito, compra, rendimento...).
-- **Usuários**: Controle de acesso com hash de senha/email e perfil (admin, gerente, investidor).
+- **Investidores** → dados cadastrais do investidor (CPF como chave).
+- **Instituições** → bancos, corretoras etc. identificadas por CNPJ.
+- **Tipos_Investimento** → nome, descrição e nível de risco.
+- **Carteiras** → vinculadas ao investidor; pode ter várias.
+- **Investimentos** → relaciona carteira, tipo e instituição.
+- **Transações** → movimentações financeiras por tipo (depósito, rendimento etc).
+- **Usuários** → controle de acesso com hash e papel (admin, gerente, investidor).
 
 **Relacionamentos:**
 
-- Um **Investidor** → pode ter várias **Carteiras**
-- Uma **Carteira** → pode conter vários **Investimentos**
-- Cada **Investimento** → pertence a uma **Instituição** e um **Tipo**
-- As **Transações** → se relacionam a um único **Investimento**
-- A tabela **Usuários** permite controle e auditoria dos acessos, inclusive com views exclusivas para o papel 'gerente'.
+- Investidor → Carteiras → Investimentos → Transações  
+- Investimentos → Tipo + Instituição  
+- Usuários controlam acesso e visualização via view do perfil 'gerente'.
 
-## 🛡️ Segurança
-- As senhas e e-mails são armazenados com hash.
-- Perfis de acesso com `CHECK` no papel.
-- View `Vw_Gerente_Carteiras` exibe carteiras apenas se houver usuário gerente.
-- Simulação de ataques `SQL Injection` para estudo e mitigação.
+## 🛡️ Segurança e Controle
+
+- Senhas e e-mails armazenados como hash (SHA‑256).
+- Perfil de acesso validado com `CHECK` e default `investidor`.
+- View `Vw_Gerente_Carteiras` disponível apenas se existir usuário com papel `gerente`.
+- Exemplo de SQL injection com instrução segura via aplicação usando placeholders.
+
+## 👥 Equipe e Divisão de Trabalho
+
+Trabalho foi dividido entre duplas, cada uma ficou responsável por partes específicas do projeto:
+
+| Dupla                         | Responsabilidades |
+|------------------------------|-------------------|
+| Lucas Santana & Amanda Rodrigues | Modelagem de dados, criação de tabelas (`schema/create_tables.sql`) |
+| Lucas Santana & Amanda Rodrigues | População de dados (`data/*.sql`) e consultas analíticas (`queries/*.sql`) |
+|  Marry & Lucas Cabral | Segurança e controle de acesso (`seguranca/*.sql` e `seguranca.md`) |
+| Klauber Barros & Fernando Aureliano | Controle de versão com Git, gerenciamento do repositório no GitHub, além da geração de dashboards em Power BI para visualização de dados das carteiras e investimentos. |
+
 
 ## 📊 Consultas Disponíveis
-- Relatórios gerais de carteiras, investimentos e movimentações
-- Relatórios analíticos para cálculos de saldo, rentabilidade e comportamento de investidores
+
+- Relatórios gerais de carteiras, investimentos e transações.
+- Relatórios analíticos com rentabilidade, evolução mensal, top investidores/assets.
+- Consultas com `GROUP BY`, `AVG`, `SUM`, `COUNT`, `JOIN`, `DISTINCT`.
+
+## 🏗️ Como Rodar
+
+```bash
+git clone https://github.com/cali-arena/banco-investimentos-sqlite.git
+cd banco-investimentos-sqlite
+
 
 
 
@@ -75,4 +96,4 @@ Fernando Aureliano
 
 Lucas Santana
 
-Marry Rohelly
+Marry Genez
