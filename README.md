@@ -64,6 +64,7 @@ Este repositório contém um sistema completo para gestão de carteiras de inves
 
 
 👥 Time de Desenvolvimento
+
 Lucas Cabral
 
 Amanda Rodrigues
