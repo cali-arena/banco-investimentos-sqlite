@@ -35,3 +35,6 @@ Este repositório contém um sistema completo para gestão de carteiras de inves
    ```bash
    git clone https://github.com/cali-arena/banco-investimentos-sqlite.git
    cd banco-investimentos-sqlite
+
+   ## 🏗️ Nome do time
+   Lucas
