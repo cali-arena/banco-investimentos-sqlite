@@ -37,4 +37,8 @@ Este repositório contém um sistema completo para gestão de carteiras de inves
    cd banco-investimentos-sqlite
 
    ## 🏗️ Nome do time
-   Lucas
+   Lucas Cabral
+   Amanda Rodrigues
+   Klauber Barros
+   Fernando Aureliano
+   Lucas Santana
